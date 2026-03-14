@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JKT48 Live Player</title>
+    <meta
+      name="description"
+      content="Nonton member JKT48 yang sedang live di Showroom dan IDN, lengkap dengan multi-view untuk pantau beberapa stream sekaligus."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+      integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="assets/styles.css?v=20260315y" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">JKT48 Live Player</p>
+          <h1>JKT48 Live.</h1>
+          <p class="hero-text">
+            Tonton live oshi favoritmu.
+          </p>
+        </div>
+        <div class="hero-panel">
+          <div class="stat-card stat-card-wide">
+            <span class="stat-label">Sedang live</span>
+            <strong class="stat-value" id="total-live">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Showroom</span>
+            <strong class="stat-value" id="total-showroom">0</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">IDN Live</span>
+            <strong class="stat-value" id="total-idn">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel sidebar-panel full-span" id="live-now">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Live now</p>
+              <h2>Member yang sedang live</h2>
+            </div>
+            <div class="section-actions">
+              <div class="filter-group" id="platform-filter" role="tablist" aria-label="Filter platform">
+                <button class="filter-chip active" data-filter="all" type="button">All</button>
+                <button class="filter-chip" data-filter="showroom" type="button">Showroom</button>
+                <button class="filter-chip" data-filter="idn" type="button">IDN</button>
+              </div>
+              <button class="refresh-link refresh-button" id="refresh-data" type="button">
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                <span>Refresh data</span>
+              </button>
+            </div>
+          </div>
+          <div class="live-grid" id="live-grid"></div>
+          <p class="debug-note" id="debug-note" hidden></p>
+          <div class="empty-state" id="empty-state" hidden>
+            <p>Belum ada member yang live sekarang.</p>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="assets/home.js?v=20260315y"></script>
+  </body>
+</html>

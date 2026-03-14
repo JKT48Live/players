@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JKT48 Live Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/styles.css?v=20260315w" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero player-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">JKT48 Live Player</p>
+          <h1 id="player-title">Memuat stream...</h1>
+          <div class="player-meta" id="player-meta"></div>
+        </div>
+        <div class="hero-panel hero-panel-watch"></div>
+        <div class="hero-actions hero-actions-watch">
+          <a class="button button-secondary" id="back-home-link" href="./index.html">Kembali ke home</a>
+          <a class="button button-primary" id="player-room-link" href="#" target="_blank" rel="noreferrer">Buka di platform</a>
+        </div>
+      </header>
+
+      <aside class="panel rail-panel top-rail-panel">
+        <div class="rail-header">
+          <p class="section-kicker">Live list</p>
+          <h2 id="rail-title">Pilih live member</h2>
+        </div>
+        <div class="stream-rail" id="stream-rail"></div>
+      </aside>
+
+      <main class="watch-layout">
+        <section class="panel player-panel" id="primary-player-panel">
+          <div class="player-tools">
+            <button class="button button-secondary compact" id="rotate-main-player" type="button">Rotate</button>
+          </div>
+          <div class="video-frame" id="main-player-frame">
+            <video id="main-player" controls playsinline></video>
+          </div>
+        </section>
+
+        <section class="panel comments-panel" id="comments-panel">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Komentar Live</p>
+              <h2 id="comments-title">Memuat komentar...</h2>
+            </div>
+            <div class="comments-status" id="comments-status">Menunggu stream...</div>
+          </div>
+          <div class="comments-feed" id="comments-feed"></div>
+          <div class="comments-empty" id="comments-empty">Belum ada komentar yang masuk.</div>
+        </section>
+
+        <section class="panel multiview-panel" id="multiview">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Multi-view</p>
+              <h2>Pilih live member</h2>
+            </div>
+            <div class="multiview-actions">
+              <button class="button button-secondary compact" id="clear-multiview" type="button">Kosongkan</button>
+            </div>
+          </div>
+          <div class="multiview-picker" id="multiview-picker"></div>
+          <div class="multiview-grid" id="multiview-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js"></script>
+    <script type="module" src="assets/watch.js?v=20260315w"></script>
+  </body>
+</html>
