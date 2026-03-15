@@ -4,11 +4,11 @@
   --surface: rgba(40, 43, 48, 0.84);
   --surface-strong: #32363c;
   --surface-dark: #141719;
-  --text: #f3f0ea;
-  --muted: #a9b0b8;
-  --line: rgba(243, 240, 234, 0.12);
-  --accent: #ff8a5b;
-  --accent-2: #59c7c4;
+  --text: #e8edf2;
+  --muted: #97a1ab;
+  --line: rgba(232, 237, 242, 0.1);
+  --accent: #7cc7d9;
+  --accent-2: #5f8cff;
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.38);
   --radius-lg: 28px;
   --radius-md: 20px;
@@ -33,8 +33,8 @@ body {
   font-family: "Space Grotesk", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at top left, rgba(255, 138, 91, 0.18), transparent 26%),
-    radial-gradient(circle at top right, rgba(89, 199, 196, 0.16), transparent 24%),
+    radial-gradient(circle at top left, rgba(124, 199, 217, 0.14), transparent 26%),
+    radial-gradient(circle at top right, rgba(95, 140, 255, 0.12), transparent 24%),
     linear-gradient(180deg, #282b30 0%, #1d2123 55%, #171a1c 100%);
 }
 
@@ -166,8 +166,9 @@ body::before {
 }
 
 .button-primary {
-  background: linear-gradient(135deg, #f3f0ea, #cfd5db);
-  color: #16191b;
+  background: linear-gradient(135deg, #3a4752, #2b3640);
+  color: #ecf3f8;
+  border: 1px solid rgba(232, 237, 242, 0.1);
   padding: 14px 20px;
 }
 
@@ -271,10 +272,27 @@ body::before {
   scroll-snap-align: start;
 }
 
+.watch-layout.multi-mode .multiview-picker .rail-card.active {
+  position: relative;
+}
+
+.watch-layout.multi-mode .multiview-picker .rail-card.active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px rgba(124, 199, 217, 0.9);
+  pointer-events: none;
+}
+
 .watch-layout.multi-mode .multiview-picker .rail-card img {
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 14px;
+}
+
+.watch-layout.multi-mode .multiview-picker .rail-card.active img {
+  box-shadow: 0 0 0 1px rgba(124, 199, 217, 0.28), 0 12px 24px rgba(95, 140, 255, 0.12);
 }
 
 .watch-layout.multi-mode .multiview-picker .rail-card > div strong {
@@ -285,6 +303,10 @@ body::before {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.watch-layout.multi-mode .multiview-picker .rail-card.active > div strong {
+  color: #9dd9e5;
 }
 
 .panel {
@@ -451,7 +473,7 @@ body::before {
 
 .meta-pill {
   border-radius: 999px;
-  background: rgba(255, 138, 91, 0.14);
+  background: rgba(124, 199, 217, 0.12);
   color: var(--text);
   padding: 10px 14px;
   font-size: 0.88rem;
@@ -496,8 +518,8 @@ body::before {
 }
 
 .filter-chip.active {
-  background: linear-gradient(135deg, rgba(255, 138, 91, 0.2), rgba(89, 199, 196, 0.18));
-  border-color: rgba(255, 138, 91, 0.35);
+  background: linear-gradient(135deg, rgba(124, 199, 217, 0.18), rgba(95, 140, 255, 0.16));
+  border-color: rgba(124, 199, 217, 0.28);
 }
 
 .refresh-button {
@@ -608,7 +630,7 @@ body::before {
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 0.78rem;
-  background: rgba(89, 199, 196, 0.14);
+  background: rgba(95, 140, 255, 0.12);
   color: var(--text);
 }
 
@@ -665,7 +687,7 @@ body::before {
   overflow-y: hidden;
   padding-bottom: 6px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(232, 93, 63, 0.75) rgba(24, 32, 43, 0.08);
+  scrollbar-color: rgba(124, 199, 217, 0.7) rgba(255, 255, 255, 0.06);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -674,18 +696,18 @@ body::before {
 }
 
 .multiview-picker::-webkit-scrollbar-track {
-  background: rgba(24, 32, 43, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
 }
 
 .multiview-picker::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(232, 93, 63, 0.92), rgba(15, 139, 141, 0.82));
+  background: linear-gradient(90deg, rgba(124, 199, 217, 0.9), rgba(95, 140, 255, 0.82));
   border-radius: 999px;
   border: 2px solid rgba(40, 43, 48, 0.9);
 }
 
 .multiview-picker::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, rgba(232, 93, 63, 1), rgba(15, 139, 141, 0.95));
+  background: linear-gradient(90deg, rgba(146, 214, 228, 1), rgba(117, 158, 255, 0.95));
 }
 
 .rail-panel {
@@ -694,7 +716,7 @@ body::before {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: rgba(232, 93, 63, 0.75) rgba(24, 32, 43, 0.08);
+  scrollbar-color: rgba(124, 199, 217, 0.7) rgba(255, 255, 255, 0.06);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -703,12 +725,12 @@ body::before {
 }
 
 .rail-panel::-webkit-scrollbar-track {
-  background: rgba(24, 32, 43, 0.08);
+  background: rgba(255, 255, 255, 0.06);
   border-radius: 999px;
 }
 
 .rail-panel::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(232, 93, 63, 0.92), rgba(15, 139, 141, 0.82));
+  background: linear-gradient(90deg, rgba(124, 199, 217, 0.9), rgba(95, 140, 255, 0.82));
   border-radius: 999px;
   border: 2px solid rgba(40, 43, 48, 0.9);
 }
