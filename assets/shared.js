@@ -217,7 +217,7 @@ function countRawShowroomLives(payload) {
 
 function countRawIdnLives(payload) {
   const items = payload?.data?.searchLivestream?.result ?? [];
-  return items.filter((item) => item?.status === "live").length;
+  return items.filter(isActiveIdnLive).length;
 }
 
 function dedupeStreams(streams) {
@@ -269,7 +269,7 @@ function normalizeIdnLives(payload, memberDirectory) {
 
   return items
     .filter((item) => {
-      if (item?.status !== "live") {
+      if (!isActiveIdnLive(item)) {
         return false;
       }
 
@@ -307,6 +307,27 @@ function normalizeIdnLives(payload, memberDirectory) {
       };
     })
     .filter((item) => item.playbackUrl);
+}
+
+function isActiveIdnLive(item) {
+  if (!item?.playback_url) {
+    return false;
+  }
+
+  const status = String(item?.status ?? "").trim().toLowerCase();
+  if (status === "end" || status === "ended" || status === "offline") {
+    return false;
+  }
+
+  if (status === "live") {
+    return true;
+  }
+
+  if (item?.end_at) {
+    return false;
+  }
+
+  return Boolean(item?.live_at || item?.room_identifier || item?.slug);
 }
 
 function buildPayload(streams) {

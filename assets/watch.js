@@ -5,7 +5,7 @@ import {
   loadIdnChatRoomId,
   loadLivePayload,
   loadShowroomLiveInfo
-} from "./shared.js?v=20260315s";
+} from "./shared.js?v=20260315ac";
 
 const query = new URLSearchParams(window.location.search);
 
