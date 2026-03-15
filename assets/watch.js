@@ -85,6 +85,7 @@ let idnCommentHealthInterval = null;
 let idnLastPingKey = "";
 let pendingRotateAfterFullscreen = false;
 let vidstackReadyPromise = null;
+let mainVidstackProvider = null;
 
 function getCurrentStream() {
   return state.streams.find((item) => item.id === state.currentStreamId) ?? null;
@@ -126,6 +127,34 @@ function ensureVidstackReady() {
   }
 
   return vidstackReadyPromise;
+}
+
+function recreateMainPlayerElement() {
+  const currentPlayer = elements.mainPlayer;
+  if (!currentPlayer) {
+    return null;
+  }
+
+  try {
+    currentPlayer.pause?.();
+  } catch (error) {
+    console.error(error);
+  }
+
+  const nextPlayer = document.createElement("media-player");
+  nextPlayer.id = "main-player";
+  nextPlayer.setAttribute("view-type", "video");
+  nextPlayer.setAttribute("stream-type", "live");
+  nextPlayer.setAttribute("playsinline", "");
+  nextPlayer.innerHTML = `
+    <media-provider></media-provider>
+    <media-video-layout></media-video-layout>
+  `;
+
+  currentPlayer.replaceWith(nextPlayer);
+  elements.mainPlayer = nextPlayer;
+  mainVidstackProvider = null;
+  return nextPlayer;
 }
 
 function stopMainPlayer() {
@@ -193,6 +222,7 @@ function setupMainVidstackPlayer() {
       return;
     }
 
+    mainVidstackProvider = provider;
     applyProviderConfig(provider, stream);
     syncMainPlayerViewport();
     requestAnimationFrame(syncMainPlayerRotation);
@@ -200,6 +230,7 @@ function setupMainVidstackPlayer() {
 
   elements.mainPlayer.addEventListener("fullscreen-change", () => {
     requestAnimationFrame(() => {
+      syncMainPlayerFullscreenState();
       syncMainPlayerViewport();
       if (isMainPlayerFullscreen()) {
         resetMainPlayerRotation();
@@ -215,6 +246,7 @@ function setupMainVidstackPlayer() {
 
   document.addEventListener("fullscreenchange", () => {
     requestAnimationFrame(() => {
+      syncMainPlayerFullscreenState();
       syncMainPlayerViewport();
       if (isMainPlayerFullscreen()) {
         resetMainPlayerRotation();
@@ -353,6 +385,14 @@ function isMainPlayerFullscreen() {
         activeFullscreenElement === elements.mainPlayerFrame ||
         elements.mainPlayer?.contains(activeFullscreenElement))
   );
+}
+
+function syncMainPlayerFullscreenState() {
+  if (!elements.mainPlayerFrame) {
+    return;
+  }
+
+  elements.mainPlayerFrame.dataset.fullscreen = isMainPlayerFullscreen() ? "true" : "false";
 }
 
 function resetMainPlayerRotation() {
@@ -965,7 +1005,11 @@ async function setMainPlayer(stream) {
     ].join("");
   }
 
+  recreateMainPlayerElement();
   setupMainVidstackPlayer();
+  if (mainVidstackProvider) {
+    applyProviderConfig(mainVidstackProvider, stream);
+  }
   elements.mainPlayer.title = `${stream.memberName} - ${stream.platform}`;
   elements.mainPlayer.src = {
     src: stream.playbackUrl,
@@ -978,8 +1022,9 @@ async function setMainPlayer(stream) {
   rotateTarget.dataset.rotation = "0";
   rotateTarget.dataset.orientation = "";
   applyRotation(rotateTarget, 0);
+  syncMainPlayerFullscreenState();
   syncMainPlayerViewport();
-  elements.mainPlayer.play?.().catch(() => {});
+  await playPlayerWithFallback(elements.mainPlayer, { muted: false, volume: 1 }).catch(() => {});
   updateCommentsForStream(stream);
 }
 

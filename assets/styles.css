@@ -530,6 +530,16 @@ body::before {
   margin-right: auto;
 }
 
+.video-frame[data-fullscreen="true"][data-orientation="portrait"],
+.video-frame[data-fullscreen="true"][data-orientation="portrait"] .video-stage,
+.video-frame[data-fullscreen="true"][data-orientation="portrait"] .video-stage media-player,
+.video-frame[data-fullscreen="true"][data-orientation="portrait"] video {
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  height: 100%;
+}
+
 .video-frame[data-orientation="portrait"] video {
   max-height: min(74vh, 900px);
 }
