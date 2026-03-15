@@ -575,6 +575,7 @@ function setMainPlayer(stream) {
   if (!stream) {
     elements.playerTitle.textContent = isMultiMode ? "Multi-view" : "Stream tidak ditemukan";
     elements.playerRoomLink.href = "#";
+    elements.playerRoomLink.hidden = isMultiMode;
     elements.playerMeta.innerHTML = isMultiMode
       ? '<span class="meta-pill">Pantau beberapa stream sekaligus</span>'
       : "";
@@ -589,6 +590,7 @@ function setMainPlayer(stream) {
     elements.playerTitle.textContent = "Multi-view";
     elements.playerRoomLink.href = stream.roomUrl;
     elements.playerRoomLink.textContent = "Buka di platform";
+    elements.playerRoomLink.hidden = true;
     elements.playerMeta.innerHTML = [
       `<span class="meta-pill">${state.multiViewIds.length || 1} stream aktif</span>`,
       `<span class="meta-pill">Mode pantau banyak live sekaligus</span>`
@@ -597,6 +599,7 @@ function setMainPlayer(stream) {
     elements.playerTitle.textContent = `${stream.memberName} - ${stream.platform}`;
     elements.playerRoomLink.href = stream.roomUrl;
     elements.playerRoomLink.textContent = "Buka di platform";
+    elements.playerRoomLink.hidden = false;
     elements.playerMeta.innerHTML = [
       `<span class="meta-pill">${stream.title}</span>`,
       `<span class="meta-pill">${formatNumber(stream.viewers)} viewers</span>`,
