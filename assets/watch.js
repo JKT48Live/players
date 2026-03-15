@@ -1256,6 +1256,8 @@ function renderMultiView() {
   elements.commentsPanel.hidden = isMultiMode;
 
   if (isMultiMode) {
+    elements.playerTitle.textContent = "Multi-view";
+    elements.playerRoomLink.hidden = true;
     destroyController(mainPlayerController);
     mainPlayerController = null;
     stopMainPlayer();
