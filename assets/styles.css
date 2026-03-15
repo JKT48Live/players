@@ -990,6 +990,19 @@ body::before {
   max-height: min(62vh, 680px);
 }
 
+.multiview-slot media-player:fullscreen,
+.multiview-slot media-player:fullscreen media-provider,
+.multiview-slot media-player:fullscreen video {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+}
+
+.multiview-slot media-player:fullscreen {
+  aspect-ratio: auto;
+}
+
 .multiview-slot[data-orientation="portrait"][data-viewport-mode="landscape"] video {
   max-height: none;
 }
@@ -1122,6 +1135,15 @@ body::before {
 
   .multiview-slot[data-orientation="portrait"] video {
     max-height: 68vh;
+  }
+
+  .multiview-slot media-player:fullscreen,
+  .multiview-slot media-player:fullscreen media-provider,
+  .multiview-slot media-player:fullscreen video {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
   }
 
   .multiview-slot[data-orientation="portrait"][data-viewport-mode="landscape"] video {
