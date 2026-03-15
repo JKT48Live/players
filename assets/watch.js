@@ -34,6 +34,13 @@ const elements = {
   clearMultiview: document.querySelector("#clear-multiview")
 };
 
+function syncPageTitle() {
+  document.title =
+    query.get("mode") === "multi"
+      ? "Multi-view • JKT48 Live Player"
+      : "Single • JKT48 Live Player";
+}
+
 function withCurrentQuery(path, extraParams = {}) {
   const params = new URLSearchParams(window.location.search);
   for (const [key, value] of Object.entries(extraParams)) {
@@ -967,6 +974,7 @@ async function setMainPlayer(stream) {
   destroyController(mainPlayerController);
   mainPlayerController = null;
   const isMultiMode = query.get("mode") === "multi";
+  syncPageTitle();
 
   if (!stream) {
     elements.playerTitle.textContent = isMultiMode ? "Multi-view" : "Stream tidak ditemukan";
@@ -1249,6 +1257,7 @@ function createMultiViewSlot(stream) {
 
 function renderMultiView() {
   const isMultiMode = query.get("mode") === "multi";
+  syncPageTitle();
   elements.multiViewPanel.hidden = !isMultiMode;
   elements.primaryPlayerPanel.hidden = isMultiMode;
   elements.railPanel.hidden = isMultiMode;
