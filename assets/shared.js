@@ -16,6 +16,7 @@ export const CORS_PROXIES = [
 ];
 
 const SHOWROOM_URL = "https://www.showroom-live.com/api/live/onlives";
+const IDN_V4_URL = "https://api.idn.app/api/v4/livestreams?category=all&page=1";
 const IDN_GQL_URL = "https://api.idn.app/graphql";
 const MEMBER_DIRECTORY_URL = "./assets/members.json";
 const IDN_GQL_BODY = {
@@ -26,6 +27,30 @@ const IDN_GQL_BODY = {
 export function isTestMode() {
   const params = new URLSearchParams(window.location.search);
   return params.get("test") === "true";
+}
+
+function getIdnApiPreference() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("idnapi") === "v4" ? "v4" : "graphql";
+}
+
+function getIdnV4Headers() {
+  const runtimeHeaders = window.__JKT48LIVE_IDN_HEADERS__;
+  if (runtimeHeaders && typeof runtimeHeaders === "object") {
+    return runtimeHeaders;
+  }
+
+  try {
+    const rawHeaders = window.localStorage?.getItem("jkt48live.idnHeaders");
+    if (!rawHeaders) {
+      return null;
+    }
+
+    const parsedHeaders = JSON.parse(rawHeaders);
+    return parsedHeaders && typeof parsedHeaders === "object" ? parsedHeaders : null;
+  } catch {
+    return null;
+  }
 }
 
 export function formatNumber(value) {
@@ -215,8 +240,27 @@ function countRawShowroomLives(payload) {
   return lives.length;
 }
 
+function getIdnItems(payload) {
+  const sources = [
+    payload?.data?.searchLivestream?.result,
+    payload?.data?.livestreams,
+    payload?.data?.data,
+    payload?.data,
+    payload?.livestreams,
+    payload?.result
+  ];
+
+  for (const source of sources) {
+    if (Array.isArray(source)) {
+      return source;
+    }
+  }
+
+  return [];
+}
+
 function countRawIdnLives(payload) {
-  const items = payload?.data?.searchLivestream?.result ?? [];
+  const items = getIdnItems(payload);
   return items.filter(isActiveIdnLive).length;
 }
 
@@ -265,7 +309,7 @@ function dedupeStreams(streams) {
 }
 
 function normalizeIdnLives(payload, memberDirectory) {
-  const items = payload?.data?.searchLivestream?.result ?? [];
+  const items = getIdnItems(payload);
 
   return items
     .filter((item) => {
@@ -277,40 +321,32 @@ function normalizeIdnLives(payload, memberDirectory) {
         return true;
       }
 
-      return memberDirectory.idnIds.has(item?.creator?.uuid);
-    })
-    .map((item) => {
-      const memberName = formatName(item.creator?.name || "Unknown");
+      const creatorId =
+        item?.creator?.uuid ??
+        item?.creator?.id ??
+        item?.user?.uuid ??
+        item?.user?.id ??
+        item?.host?.uuid ??
+        item?.host?.id ??
+        item?.creator_uuid;
 
-      return {
-        id: `idn:${item.room_identifier ?? item.slug}`,
-        platform: "IDN Live",
-        platformKey: "idn",
-        memberName,
-        slug: slugify(memberName),
-        title: item.title?.trim() || "Live sekarang",
-        startedAt: toIsoDate(item.live_at),
-        viewers: item.view_count ?? 0,
-        thumbnail: item.image_url ?? item.creator?.avatar ?? "",
-        avatar: item.creator?.avatar ?? "",
-        playbackUrl: item.playback_url ?? "",
-        roomUrl:
-          item.slug && item.creator?.username
-            ? `https://www.idn.app/${item.creator.username}/live/${item.slug}`
-            : item.slug
-              ? `https://www.idn.app/live/${item.slug}`
-              : "https://www.idn.app/live",
-        roomKey: item.room_identifier ?? item.slug ?? "",
-        creatorId: item.creator?.uuid ?? "",
-        creatorUsername: item.creator?.username ?? "",
-        sourceLabel: item.category?.name ?? "Idol"
-      };
+      return memberDirectory.idnIds.has(creatorId);
     })
+    .map(normalizeIdnItem)
     .filter((item) => item.playbackUrl);
 }
 
 function isActiveIdnLive(item) {
-  if (!item?.playback_url) {
+  const playbackUrl =
+    item?.playback_url ??
+    item?.playbackUrl ??
+    item?.stream_url ??
+    item?.streamUrl ??
+    item?.hls_url ??
+    item?.hlsUrl ??
+    item?.playback?.url;
+
+  if (!playbackUrl) {
     return false;
   }
 
@@ -327,7 +363,83 @@ function isActiveIdnLive(item) {
     return false;
   }
 
-  return Boolean(item?.live_at || item?.room_identifier || item?.slug);
+  return Boolean(item?.live_at || item?.room_identifier || item?.slug || item?.id);
+}
+
+function normalizeIdnItem(item) {
+  const creator = item?.creator ?? item?.user ?? item?.host ?? {};
+  const playbackUrl =
+    item?.playback_url ??
+    item?.playbackUrl ??
+    item?.stream_url ??
+    item?.streamUrl ??
+    item?.hls_url ??
+    item?.hlsUrl ??
+    item?.playback?.url ??
+    "";
+  const roomKey = item?.room_identifier ?? item?.roomIdentifier ?? item?.slug ?? item?.id ?? "";
+  const username = creator?.username ?? creator?.user_name ?? item?.username ?? "";
+  const slug = item?.slug ?? roomKey;
+  const roomUrl =
+    slug && username
+      ? `https://www.idn.app/${username}/live/${slug}`
+      : slug
+        ? `https://www.idn.app/live/${slug}`
+        : "https://www.idn.app/live";
+
+  return {
+    id: `idn:${roomKey}`,
+    platform: "IDN Live",
+    platformKey: "idn",
+    memberName: formatName(creator?.name ?? creator?.display_name ?? item?.creator_name ?? "Unknown"),
+    slug: slugify(formatName(creator?.name ?? creator?.display_name ?? item?.creator_name ?? "Unknown")),
+    title: item?.title?.trim?.() || item?.name?.trim?.() || "Live sekarang",
+    startedAt: toIsoDate(item?.live_at ?? item?.started_at ?? item?.startedAt),
+    viewers: item?.view_count ?? item?.views ?? item?.viewer_count ?? 0,
+    thumbnail: item?.image_url ?? item?.thumbnail_url ?? item?.cover ?? creator?.avatar ?? creator?.avatar_url ?? "",
+    avatar: creator?.avatar ?? creator?.avatar_url ?? item?.avatar ?? "",
+    playbackUrl,
+    roomUrl,
+    roomKey,
+    creatorId: creator?.uuid ?? creator?.id ?? item?.creator_uuid ?? "",
+    creatorUsername: username,
+    sourceLabel: item?.category?.name ?? item?.category_name ?? "Idol"
+  };
+}
+
+async function loadIdnLives() {
+  const preferredSource = getIdnApiPreference();
+  const v4Headers = getIdnV4Headers();
+
+  if (preferredSource === "v4" && v4Headers) {
+    try {
+      const result = await fetchJsonWithProxy(IDN_V4_URL, {
+        headers: {
+          ...v4Headers
+        }
+      });
+
+      return {
+        ...result,
+        source: "v4"
+      };
+    } catch {
+      // Fall back to GraphQL below when runtime v4 headers fail or expire.
+    }
+  }
+
+  const result = await fetchJsonWithProxy(IDN_GQL_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(IDN_GQL_BODY)
+  });
+
+  return {
+    ...result,
+    source: "graphql"
+  };
 }
 
 function buildPayload(streams) {
@@ -355,13 +467,7 @@ export async function loadLivePayload() {
   const memberDirectory = await loadMemberDirectory();
   const [showroomResult, idnResult] = await Promise.allSettled([
     fetchJsonWithProxy(SHOWROOM_URL),
-    fetchJsonWithProxy(IDN_GQL_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(IDN_GQL_BODY)
-    })
+    loadIdnLives()
   ]);
 
   const showroomStreams =
@@ -391,7 +497,8 @@ export async function loadLivePayload() {
       idn: {
         status: idnResult.status,
         rawCount: idnResult.status === "fulfilled" ? countRawIdnLives(idnResult.value.data) : 0,
-        normalizedCount: idnStreams.length
+        normalizedCount: idnStreams.length,
+        source: idnResult.status === "fulfilled" ? idnResult.value.source : null
       }
     }
   };
