@@ -1,4 +1,4 @@
-import { formatNumber, formatRelativeDate, loadLivePayload } from "./shared.js?v=20260315ad";
+import { formatNumber, formatRelativeDate, loadLivePayload } from "./shared.js?v=20260316m";
 
 const query = new URLSearchParams(window.location.search);
 

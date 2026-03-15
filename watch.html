@@ -10,7 +10,9 @@
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="assets/styles.css?v=20260316j" />
+    <link rel="stylesheet" href="https://cdn.vidstack.io/player/theme.css" />
+    <link rel="stylesheet" href="https://cdn.vidstack.io/player/video.css" />
+    <link rel="stylesheet" href="assets/styles.css?v=20260317au" />
   </head>
   <body>
     <div class="page-shell">
@@ -41,7 +43,12 @@
             <button class="button button-secondary compact" id="rotate-main-player" type="button">Rotate</button>
           </div>
           <div class="video-frame" id="main-player-frame">
-            <video id="main-player" controls playsinline></video>
+            <div class="video-stage">
+              <media-player id="main-player" view-type="video" stream-type="live" playsinline>
+                <media-provider></media-provider>
+                <media-video-layout></media-video-layout>
+              </media-player>
+            </div>
           </div>
         </section>
 
@@ -73,7 +80,32 @@
       </main>
     </div>
 
+    <template id="multiview-slot-template">
+      <div class="multiview-slot">
+        <div class="slot-overlay">
+          <div>
+            <strong data-slot-name></strong>
+            <span data-slot-platform></span>
+          </div>
+          <div class="slot-actions">
+            <button type="button" data-action="rotate">Rotate</button>
+            <button type="button" data-action="refresh">Refresh</button>
+            <button type="button" data-action="left">←</button>
+            <button type="button" data-action="right">→</button>
+            <button type="button" data-action="remove">Tutup</button>
+          </div>
+        </div>
+        <div class="video-stage">
+          <media-player view-type="video" stream-type="live" playsinline>
+            <media-provider></media-provider>
+            <media-video-layout></media-video-layout>
+          </media-player>
+        </div>
+      </div>
+    </template>
+
+    <script type="module" src="https://cdn.vidstack.io/player"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.18/dist/hls.min.js"></script>
-    <script type="module" src="assets/watch.js?v=20260316i"></script>
+    <script type="module" src="assets/watch.js?v=20260317as"></script>
   </body>
 </html>

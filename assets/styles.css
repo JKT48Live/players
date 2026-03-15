@@ -455,6 +455,56 @@ body::before {
   aspect-ratio: var(--media-ratio, 16 / 9);
   --video-rotation: 0deg;
   --video-scale: 1;
+  --video-nudge: 0px;
+}
+
+.video-stage {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: var(--media-ratio, 16 / 9);
+  margin: 0 auto;
+}
+
+.video-stage media-player {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: inherit;
+  display: block;
+  background: #06090f;
+  --media-brand: var(--accent-2);
+  --media-focus-ring-color: rgba(124, 199, 217, 0.75);
+  --media-control-bg: rgba(20, 23, 25, 0.74);
+  --media-control-hover-bg: rgba(40, 43, 48, 0.94);
+  --media-tooltip-bg-color: rgba(6, 9, 15, 0.92);
+  --media-tooltip-color: var(--text);
+  --media-menu-bg: rgba(20, 23, 25, 0.96);
+}
+
+.video-stage media-provider {
+  width: 100%;
+  height: 100%;
+  display: block;
+  transform: translateZ(0) translateX(var(--video-nudge)) rotate(var(--video-rotation)) scale(var(--video-scale));
+  transform-origin: center center;
+  transition: transform 180ms ease;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.multiview-slot .video-stage media-provider {
+  transform: translateZ(0) translateX(var(--video-nudge)) rotate(var(--video-rotation)) scale(var(--video-scale));
+  transform-origin: center center;
+  transition: transform 180ms ease;
+  backface-visibility: hidden;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.video-stage media-player video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .video-frame video,
@@ -464,13 +514,18 @@ body::before {
   display: block;
   background: #06090f;
   object-fit: contain;
-  transform: rotate(var(--video-rotation)) scale(var(--video-scale));
-  transform-origin: center center;
-  transition: transform 180ms ease;
 }
 
 .video-frame[data-orientation="portrait"] {
   max-height: min(82vh, 980px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.video-frame[data-orientation="portrait"] .video-stage,
+.video-frame[data-orientation="portrait"] .video-stage media-player {
+  width: min(100%, 540px);
+  max-height: min(74vh, 900px);
   margin-left: auto;
   margin-right: auto;
 }
@@ -849,8 +904,10 @@ body::before {
   overflow: hidden;
   background: var(--surface-dark);
   min-height: 0;
+  position: relative;
   --video-rotation: 0deg;
   --video-scale: 1;
+  --video-nudge: 0px;
 }
 
 .slot-empty {
@@ -860,6 +917,8 @@ body::before {
 }
 
 .slot-overlay {
+  position: relative;
+  z-index: 3;
   display: flex;
   gap: 8px;
   align-items: center;
@@ -893,16 +952,36 @@ body::before {
 }
 
 .multiview-slot video {
-  aspect-ratio: var(--media-ratio, 3 / 4);
   object-fit: contain;
+}
+
+.multiview-slot .video-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: var(--media-ratio, 3 / 4);
 }
 
 .multiview-slot[data-orientation="portrait"] {
   max-height: min(72vh, 760px);
 }
 
+.multiview-slot[data-orientation="portrait"] .video-stage,
+.multiview-slot[data-orientation="portrait"] .video-stage media-player {
+  max-height: min(62vh, 680px);
+}
+
+.multiview-slot[data-orientation="portrait"][data-viewport-mode="landscape"] .video-stage {
+  aspect-ratio: 16 / 9;
+}
+
 .multiview-slot[data-orientation="portrait"] video {
   max-height: min(62vh, 680px);
+}
+
+.multiview-slot[data-orientation="portrait"][data-viewport-mode="landscape"] video {
+  max-height: none;
 }
 
 .slot-overlay button[disabled] {
@@ -1008,6 +1087,12 @@ body::before {
     margin-right: auto;
   }
 
+  .video-frame[data-orientation="portrait"] .video-stage,
+  .video-frame[data-orientation="portrait"] .video-stage media-player {
+    width: min(100%, 460px);
+    max-height: 70vh;
+  }
+
   .video-frame[data-orientation="portrait"] video {
     max-height: 70vh;
   }
@@ -1016,8 +1101,21 @@ body::before {
     max-height: 78vh;
   }
 
+  .multiview-slot[data-orientation="portrait"] .video-stage,
+  .multiview-slot[data-orientation="portrait"] .video-stage media-player {
+    max-height: 68vh;
+  }
+
+  .multiview-slot[data-orientation="portrait"][data-viewport-mode="landscape"] .video-stage {
+    aspect-ratio: 16 / 9;
+  }
+
   .multiview-slot[data-orientation="portrait"] video {
     max-height: 68vh;
+  }
+
+  .multiview-slot[data-orientation="portrait"][data-viewport-mode="landscape"] video {
+    max-height: none;
   }
 
   .watch-layout.multi-mode {

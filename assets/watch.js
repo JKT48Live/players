@@ -1,11 +1,12 @@
 import {
+  getProxyChain,
   createProxyLoader,
   formatAbsoluteDate,
   formatNumber,
   loadIdnChatRoomId,
   loadLivePayload,
   loadShowroomLiveInfo
-} from "./shared.js?v=20260315ad";
+} from "./shared.js?v=20260316m";
 
 const query = new URLSearchParams(window.location.search);
 
@@ -47,6 +48,21 @@ function withCurrentQuery(path, extraParams = {}) {
   return suffix ? `${path}?${suffix}` : path;
 }
 
+function appendRefreshToken(url) {
+  if (!url) {
+    return url;
+  }
+
+  try {
+    const nextUrl = new URL(url);
+    nextUrl.searchParams.set("_r", String(Date.now()));
+    return nextUrl.toString();
+  } catch (error) {
+    const separator = url.includes("?") ? "&" : "?";
+    return `${url}${separator}_r=${Date.now()}`;
+  }
+}
+
 const state = {
   streams: [],
   proxies: {
@@ -59,6 +75,7 @@ const state = {
 
 let mainPlayerController = null;
 const multiViewControllers = new Map();
+const multiViewSlots = new Map();
 let mainPlayerRotation = 0;
 let commentSocket = null;
 let commentPingInterval = null;
@@ -66,10 +83,204 @@ let commentReconnectTimer = null;
 let activeCommentStreamId = null;
 let idnCommentHealthInterval = null;
 let idnLastPingKey = "";
+let pendingRotateAfterFullscreen = false;
+let vidstackReadyPromise = null;
+
+function getCurrentStream() {
+  return state.streams.find((item) => item.id === state.currentStreamId) ?? null;
+}
+
+function getPreferredProxyChain(stream) {
+  const preferredProxy =
+    stream?.platformKey === "idn" ? state.proxies.idn : null;
+
+  return preferredProxy ? getProxyChain(preferredProxy) : [];
+}
+
+function getMainPlayerMedia() {
+  return elements.mainPlayer?.querySelector("video") ?? null;
+}
+
+function waitForFrames(count = 1) {
+  return new Promise((resolve) => {
+    const step = () => {
+      if (count <= 0) {
+        resolve();
+        return;
+      }
+
+      count -= 1;
+      requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
+  });
+}
+
+function ensureVidstackReady() {
+  if (!vidstackReadyPromise) {
+    vidstackReadyPromise = Promise.all([
+      customElements.whenDefined("media-player"),
+      customElements.whenDefined("media-provider")
+    ]);
+  }
+
+  return vidstackReadyPromise;
+}
+
+function stopMainPlayer() {
+  if (!elements.mainPlayer) {
+    return;
+  }
+
+  try {
+    elements.mainPlayer.pause?.();
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function syncMainPlayerViewport(attempt = 0) {
+  const media = getMainPlayerMedia();
+
+  if (media) {
+    syncViewportToVideo(media, elements.mainPlayerFrame);
+    requestAnimationFrame(syncCommentsFeedHeight);
+    return;
+  }
+
+  if (attempt < 20) {
+    requestAnimationFrame(() => syncMainPlayerViewport(attempt + 1));
+  }
+}
+
+function applyProviderConfig(provider, stream) {
+  if (!provider || !stream) {
+    return;
+  }
+
+  try {
+    provider.library = window.Hls;
+  } catch (error) {
+    console.error(error);
+  }
+
+  try {
+    const proxyChain = getPreferredProxyChain(stream);
+    provider.config = {
+      lowLatencyMode: true,
+      enableWorker: true,
+      loader: proxyChain.length > 0 ? createProxyLoader(proxyChain) : window.Hls.DefaultConfig.loader
+    };
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function setupMainVidstackPlayer() {
+  if (!elements.mainPlayer || elements.mainPlayer.dataset.vidstackReady === "true") {
+    return;
+  }
+
+  elements.mainPlayer.dataset.vidstackReady = "true";
+  elements.mainPlayer.setAttribute("load", "eager");
+  elements.mainPlayer.setAttribute("autoplay", "");
+  elements.mainPlayer.addEventListener("provider-change", (event) => {
+    const provider = event.detail;
+    const stream = getCurrentStream();
+
+    if (!provider || !stream) {
+      return;
+    }
+
+    applyProviderConfig(provider, stream);
+    syncMainPlayerViewport();
+    requestAnimationFrame(syncMainPlayerRotation);
+  });
+
+  elements.mainPlayer.addEventListener("fullscreen-change", () => {
+    requestAnimationFrame(() => {
+      syncMainPlayerViewport();
+      if (isMainPlayerFullscreen()) {
+        resetMainPlayerRotation();
+      } else if (pendingRotateAfterFullscreen) {
+        pendingRotateAfterFullscreen = false;
+        mainPlayerRotation = (mainPlayerRotation + 90) % 360;
+        syncMainPlayerRotation();
+      } else {
+        syncMainPlayerRotation();
+      }
+    });
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    requestAnimationFrame(() => {
+      syncMainPlayerViewport();
+      if (isMainPlayerFullscreen()) {
+        resetMainPlayerRotation();
+      } else if (pendingRotateAfterFullscreen) {
+        pendingRotateAfterFullscreen = false;
+        mainPlayerRotation = (mainPlayerRotation + 90) % 360;
+        syncMainPlayerRotation();
+      } else {
+        syncMainPlayerRotation();
+      }
+    });
+  });
+}
+
+function setupMultiViewVidstackPlayer(player, slot, stream) {
+  if (!player || player.dataset.vidstackReady === "true") {
+    return;
+  }
+
+  player.dataset.vidstackReady = "true";
+  player.setAttribute("load", "eager");
+  player.setAttribute("autoplay", "");
+  player.addEventListener("provider-change", (event) => {
+    const provider = event.detail;
+    const activeStream = state.streams.find((item) => item.id === slot.dataset.streamId) ?? stream;
+
+    if (!provider || !activeStream) {
+      return;
+    }
+
+    applyProviderConfig(provider, activeStream);
+
+    const syncSlotViewport = (attempt = 0) => {
+      const media = getPlayerMedia(player);
+
+      if (media) {
+        syncViewportToVideo(media, slot);
+        return;
+      }
+
+      if (attempt < 20) {
+        requestAnimationFrame(() => syncSlotViewport(attempt + 1));
+      }
+    };
+
+    syncSlotViewport();
+  });
+}
 
 function destroyController(controller) {
   if (!controller) {
     return;
+  }
+
+  if (controller.player) {
+    try {
+      controller.player.pause?.();
+    } catch (error) {
+      console.error(error);
+    }
+
+    try {
+      controller.player.src = null;
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   if (controller.hls) {
@@ -81,6 +292,10 @@ function destroyController(controller) {
     controller.video.removeAttribute("src");
     controller.video.load();
   }
+}
+
+function getPlayerMedia(player) {
+  return player?.querySelector("video") ?? null;
 }
 
 function stopVideoElement(video) {
@@ -103,6 +318,60 @@ function syncCommentsFeedHeight() {
   }
 }
 
+function getMainPlayerStage() {
+  return elements.mainPlayerFrame?.querySelector(".video-stage") ?? elements.mainPlayerFrame;
+}
+
+function getMainPlayerRotateTarget() {
+  return elements.mainPlayer?.querySelector("media-provider") ?? getMainPlayerStage();
+}
+
+function getMultiViewRotateTarget(slot) {
+  return slot?.querySelector("media-provider") ?? slot?.querySelector(".video-stage") ?? slot;
+}
+
+function syncMultiViewRotatedViewport(slot) {
+  if (!slot) {
+    return;
+  }
+
+  const rotationTarget = getMultiViewRotateTarget(slot);
+  const rotation = Number(rotationTarget?.dataset.rotation || 0);
+  const normalized = ((rotation % 360) + 360) % 360;
+  const isQuarterTurn = normalized === 90 || normalized === 270;
+  const isPortrait = slot.dataset.orientation === "portrait";
+
+  slot.dataset.rotatedQuarter = isQuarterTurn ? "true" : "false";
+  slot.dataset.viewportMode = isPortrait && isQuarterTurn ? "landscape" : "";
+}
+
+function isMainPlayerFullscreen() {
+  const activeFullscreenElement = document.fullscreenElement;
+  return Boolean(
+    activeFullscreenElement &&
+      (activeFullscreenElement === elements.mainPlayer ||
+        activeFullscreenElement === elements.mainPlayerFrame ||
+        elements.mainPlayer?.contains(activeFullscreenElement))
+  );
+}
+
+function resetMainPlayerRotation() {
+  mainPlayerRotation = 0;
+  syncMainPlayerRotation();
+}
+
+function syncMainPlayerRotation() {
+  const rotateTarget = getMainPlayerRotateTarget();
+  if (!rotateTarget) {
+    return;
+  }
+
+  rotateTarget.dataset.rotation = String(mainPlayerRotation);
+  rotateTarget.dataset.orientation = elements.mainPlayerFrame.dataset.orientation || "";
+  applyRotation(rotateTarget, mainPlayerRotation);
+  forceVideoRepaint(rotateTarget, getMainPlayerMedia());
+}
+
 function applyRotation(container, rotation) {
   if (!container) {
     return;
@@ -112,19 +381,55 @@ function applyRotation(container, rotation) {
   const isQuarterTurn = normalized === 90 || normalized === 270;
   const width = container.clientWidth || 1;
   const height = container.clientHeight || 1;
-  const scale = isQuarterTurn ? Math.min(width / height, height / width) : 1;
+  const multiViewSlot = container.closest?.(".multiview-slot");
+  const shouldFillRotatedViewport =
+    multiViewSlot?.dataset.orientation === "portrait" &&
+    multiViewSlot?.dataset.viewportMode === "landscape" &&
+    isQuarterTurn;
+  const scale = isQuarterTurn
+    ? shouldFillRotatedViewport
+      ? Math.max(width / height, height / width)
+      : Math.min(width / height, height / width)
+    : 1;
 
   container.style.setProperty("--video-rotation", `${normalized}deg`);
   container.style.setProperty("--video-scale", `${scale}`);
 }
 
-function rotateContainer(container) {
+function forceVideoRepaint(container, video) {
+  if (!container || !video) {
+    return;
+  }
+
+  const nextNudge = container.dataset.repaintNudge === "1" ? "0px" : "0.001px";
+  container.dataset.repaintNudge = nextNudge === "0px" ? "0" : "1";
+  container.style.setProperty("--video-nudge", nextNudge);
+
+  requestAnimationFrame(() => {
+    if (!video.paused) {
+      video.play().catch(() => {});
+    }
+  });
+}
+
+function rotateContainer(container, video) {
   const current = Number(container?.dataset.rotation || 0);
   const next = (current + 90) % 360;
   if (container) {
     container.dataset.rotation = String(next);
   }
   applyRotation(container, next);
+  forceVideoRepaint(container, video);
+}
+
+function refreshMainPlayer() {
+  const stream = getCurrentStream();
+  if (!stream || !elements.mainPlayer) {
+    return;
+  }
+
+  stopMainPlayer();
+  setMainPlayer(stream).catch((error) => console.error(error));
 }
 
 function disconnectComments() {
@@ -517,12 +822,14 @@ function attachStream(video, stream) {
     return { video };
   }
 
+  const proxyChain = getPreferredProxyChain(stream);
+  const shouldUseProxy = proxyChain.length > 0;
+
   if (window.Hls?.isSupported()) {
-    const isIdn = stream?.platformKey === "idn" && state.proxies.idn;
     const hls = new window.Hls({
       lowLatencyMode: true,
       enableWorker: true,
-      loader: isIdn ? createProxyLoader(state.proxies.idn) : window.Hls.DefaultConfig.loader
+      loader: shouldUseProxy ? createProxyLoader(proxyChain) : window.Hls.DefaultConfig.loader
     });
     hls.loadSource(url);
     hls.attachMedia(video);
@@ -530,8 +837,8 @@ function attachStream(video, stream) {
   }
 
   if (video.canPlayType("application/vnd.apple.mpegurl")) {
-    if (stream?.platformKey === "idn" && state.proxies.idn) {
-      video.src = `${state.proxies.idn}${encodeURIComponent(url)}`;
+    if (shouldUseProxy) {
+      video.src = `${proxyChain[0]}${encodeURIComponent(url)}`;
     } else {
       video.src = url;
     }
@@ -586,14 +893,46 @@ async function playWithPreferredAudio(video, { muted = false, volume = 1 } = {})
   }
 }
 
-function setMainPlayer(stream) {
+async function playPlayerWithFallback(player, { muted = false, volume = 1 } = {}) {
+  if (!player) {
+    return;
+  }
+
+  player.muted = muted;
+  player.volume = volume;
+
+  try {
+    await player.play?.();
+  } catch (error) {
+    player.muted = true;
+    await player.play?.().catch(() => {});
+  }
+}
+
+async function startMultiViewPlayer(player, stream, { preferMutedAutoplay = false } = {}) {
+  if (!player || !stream) {
+    return;
+  }
+
+  player.muted = preferMutedAutoplay;
+  player.volume = 1;
+  player.src = {
+    src: stream.playbackUrl,
+    type: "application/x-mpegurl"
+  };
+  await playPlayerWithFallback(player, { muted: preferMutedAutoplay, volume: 1 }).catch(() => {});
+}
+
+async function setMainPlayer(stream) {
   destroyController(mainPlayerController);
+  mainPlayerController = null;
   const isMultiMode = query.get("mode") === "multi";
 
   if (!stream) {
     elements.playerTitle.textContent = isMultiMode ? "Multi-view" : "Stream tidak ditemukan";
     elements.playerRoomLink.href = "#";
     elements.playerRoomLink.hidden = isMultiMode;
+    stopMainPlayer();
     elements.playerMeta.innerHTML = isMultiMode
       ? '<span class="meta-pill">Pantau beberapa stream sekaligus</span>'
       : "";
@@ -626,13 +965,21 @@ function setMainPlayer(stream) {
     ].join("");
   }
 
-  mainPlayerController = attachStream(elements.mainPlayer, stream);
+  setupMainVidstackPlayer();
+  elements.mainPlayer.title = `${stream.memberName} - ${stream.platform}`;
+  elements.mainPlayer.src = {
+    src: stream.playbackUrl,
+    type: "application/x-mpegurl"
+  };
+  elements.mainPlayer.muted = false;
+  elements.mainPlayer.volume = 1;
   mainPlayerRotation = 0;
-  elements.mainPlayerFrame.dataset.rotation = "0";
-  applyRotation(elements.mainPlayerFrame, 0);
-  syncViewportToVideo(elements.mainPlayer, elements.mainPlayerFrame);
-  requestAnimationFrame(syncCommentsFeedHeight);
-  playWithPreferredAudio(elements.mainPlayer, { muted: false, volume: 1 }).catch(() => {});
+  const rotateTarget = getMainPlayerRotateTarget();
+  rotateTarget.dataset.rotation = "0";
+  rotateTarget.dataset.orientation = "";
+  applyRotation(rotateTarget, 0);
+  syncMainPlayerViewport();
+  elements.mainPlayer.play?.().catch(() => {});
   updateCommentsForStream(stream);
 }
 
@@ -660,7 +1007,7 @@ function renderRail() {
         return;
       }
 
-      setMainPlayer(stream);
+      setMainPlayer(stream).catch((error) => console.error(error));
       renderRail();
     });
     elements.streamRail.append(item);
@@ -697,20 +1044,162 @@ function moveMultiViewItem(index, direction) {
   renderMultiView();
 }
 
-function refreshMultiViewItem(streamId) {
+async function refreshMultiViewItem(streamId) {
   const controller = multiViewControllers.get(streamId);
   const stream = state.streams.find((item) => item.id === streamId);
 
-  if (!controller || !stream || !controller.video) {
+  if (!controller || !stream) {
+    return;
+  }
+
+  if (controller.player) {
+    const rotationTarget = getMultiViewRotateTarget(multiViewSlots.get(streamId));
+    const currentRotation = Number(rotationTarget?.dataset.rotation || 0);
+    const refreshedUrl = appendRefreshToken(stream.playbackUrl);
+
+    try {
+      controller.player.pause?.();
+    } catch (error) {
+      console.error(error);
+    }
+
+    await waitForFrames(1);
+    controller.player.src = {
+      src: refreshedUrl,
+      type: "application/x-mpegurl"
+    };
+    await playPlayerWithFallback(controller.player, { muted: false, volume: 1 }).catch(() => {});
+
+    if (rotationTarget) {
+      rotationTarget.dataset.rotation = String(currentRotation);
+      applyRotation(rotationTarget, currentRotation);
+    }
+
+    syncMultiViewRotatedViewport(multiViewSlots.get(streamId));
+
+    multiViewControllers.set(streamId, { player: controller.player });
     return;
   }
 
   destroyController(controller);
+
+  if (!controller.video) {
+    return;
+  }
+
   controller.video.muted = false;
   controller.video.volume = 1;
   const nextController = attachStream(controller.video, stream);
   multiViewControllers.set(streamId, nextController);
   playWithPreferredAudio(controller.video, { muted: false, volume: 1 }).catch(() => {});
+}
+
+function updateMultiViewButtonState() {
+  const slots = [...elements.multiviewGrid.querySelectorAll(".multiview-slot")];
+  for (const slot of slots) {
+    const streamId = slot.dataset.streamId;
+    const index = state.multiViewIds.indexOf(streamId);
+    const leftButton = slot.querySelector('[data-action="left"]');
+    const rightButton = slot.querySelector('[data-action="right"]');
+
+    if (leftButton) {
+      leftButton.disabled = index <= 0;
+    }
+
+    if (rightButton) {
+      rightButton.disabled = index === -1 || index >= state.multiViewIds.length - 1;
+    }
+  }
+}
+
+function updateMultiViewSlotButtons(streamId) {
+  const slot = multiViewSlots.get(streamId);
+  if (!slot) {
+    return;
+  }
+
+  const index = state.multiViewIds.indexOf(streamId);
+  const leftButton = slot.querySelector('[data-action="left"]');
+  const rightButton = slot.querySelector('[data-action="right"]');
+
+  if (leftButton) {
+    leftButton.disabled = index <= 0;
+  }
+
+  if (rightButton) {
+    rightButton.disabled = index === -1 || index >= state.multiViewIds.length - 1;
+  }
+}
+
+function createMultiViewSlot(stream) {
+  const slot = document.createElement("div");
+  slot.className = "multiview-slot";
+  slot.dataset.streamId = stream.id;
+
+  const overlay = document.createElement("div");
+  overlay.className = "slot-overlay";
+  overlay.innerHTML = `
+    <div>
+      <strong>${stream.memberName}</strong>
+      <span>${stream.platform}</span>
+    </div>
+    <div class="slot-actions">
+      <button type="button" data-action="rotate">Rotate</button>
+      <button type="button" data-action="refresh">Refresh</button>
+      <button type="button" data-action="left">←</button>
+      <button type="button" data-action="right">→</button>
+      <button type="button" data-action="remove">Tutup</button>
+    </div>
+  `;
+  slot.append(overlay);
+
+  const stage = document.createElement("div");
+  stage.className = "video-stage";
+  const player = document.createElement("media-player");
+  player.setAttribute("view-type", "video");
+  player.setAttribute("stream-type", "live");
+  player.setAttribute("playsinline", "");
+  player.innerHTML = `
+    <media-provider></media-provider>
+    <media-video-layout></media-video-layout>
+  `;
+  stage.append(player);
+  slot.append(stage);
+  setupMultiViewVidstackPlayer(player, slot, stream);
+
+  overlay.querySelector('[data-action="rotate"]').addEventListener("click", () => {
+    const media = getPlayerMedia(player);
+    rotateContainer(getMultiViewRotateTarget(slot), media);
+    syncMultiViewRotatedViewport(slot);
+  });
+  overlay.querySelector('[data-action="refresh"]').addEventListener("click", () => {
+    refreshMultiViewItem(stream.id);
+  });
+  overlay.querySelector('[data-action="left"]').addEventListener("click", () => {
+    moveMultiViewItem(state.multiViewIds.indexOf(stream.id), -1);
+  });
+  overlay.querySelector('[data-action="right"]').addEventListener("click", () => {
+    moveMultiViewItem(state.multiViewIds.indexOf(stream.id), 1);
+  });
+  overlay.querySelector('[data-action="remove"]').addEventListener("click", () => {
+    toggleMultiView(stream.id);
+      renderRail();
+    });
+
+  player.muted = false;
+  player.volume = 1;
+  player.src = {
+    src: stream.playbackUrl,
+    type: "application/x-mpegurl"
+  };
+  player.play?.().catch(() => {});
+  multiViewControllers.set(stream.id, { player });
+  multiViewSlots.set(stream.id, slot);
+  getMultiViewRotateTarget(slot).dataset.rotation = "0";
+  syncMultiViewRotatedViewport(slot);
+  updateMultiViewSlotButtons(stream.id);
+
+  return slot;
 }
 
 function renderMultiView() {
@@ -724,18 +1213,18 @@ function renderMultiView() {
   if (isMultiMode) {
     destroyController(mainPlayerController);
     mainPlayerController = null;
-    stopVideoElement(elements.mainPlayer);
+    stopMainPlayer();
     elements.commentsPanel.style.removeProperty("--comments-feed-max-height");
     disconnectComments();
   }
 
-  for (const controller of multiViewControllers.values()) {
-    destroyController(controller);
-  }
-  multiViewControllers.clear();
-  elements.multiviewGrid.innerHTML = "";
-
   if (!isMultiMode) {
+    for (const controller of multiViewControllers.values()) {
+      destroyController(controller);
+    }
+    multiViewControllers.clear();
+    multiViewSlots.clear();
+    elements.multiviewGrid.innerHTML = "";
     return;
   }
 
@@ -750,10 +1239,23 @@ function renderMultiView() {
     `<span class="meta-pill">${selectedStreams.length} stream aktif</span>`
   ].join("");
 
-  for (let index = 0; index < selectedStreams.length; index += 1) {
-    const stream = selectedStreams[index];
+  selectedStreams.forEach((stream, index) => {
+    const existingSlot = multiViewSlots.get(stream.id);
+
+    if (existingSlot) {
+      existingSlot.style.order = String(index);
+      updateMultiViewSlotButtons(stream.id);
+      return;
+    }
+
+    const slot = createMultiViewSlot(stream);
+    slot.style.order = String(index);
+    elements.multiviewGrid.append(slot);
+    return;
+    /*
     const slot = document.createElement("div");
     slot.className = "multiview-slot";
+    slot.dataset.streamId = stream.id;
 
     const overlay = document.createElement("div");
     overlay.className = "slot-overlay";
@@ -777,20 +1279,24 @@ function renderMultiView() {
     video.muted = false;
     video.volume = 1;
     video.playsInline = true;
-    slot.append(video);
+    const stage = document.createElement("div");
+    stage.className = "video-stage";
+    stage.append(video);
+    slot.append(stage);
     syncViewportToVideo(video, slot);
 
     overlay.querySelector('[data-action="rotate"]').addEventListener("click", () => {
-      rotateContainer(slot);
+      rotateContainer(slot, video);
+      refreshMultiViewItem(stream.id);
     });
     overlay.querySelector('[data-action="refresh"]').addEventListener("click", () => {
       refreshMultiViewItem(stream.id);
     });
     overlay.querySelector('[data-action="left"]').addEventListener("click", () => {
-      moveMultiViewItem(index, -1);
+      moveMultiViewItem(state.multiViewIds.indexOf(stream.id), -1);
     });
     overlay.querySelector('[data-action="right"]').addEventListener("click", () => {
-      moveMultiViewItem(index, 1);
+      moveMultiViewItem(state.multiViewIds.indexOf(stream.id), 1);
     });
     overlay.querySelector('[data-action="remove"]').addEventListener("click", () => {
       toggleMultiView(stream.id);
@@ -801,7 +1307,20 @@ function renderMultiView() {
     const controller = attachStream(video, stream);
     multiViewControllers.set(stream.id, controller);
     playWithPreferredAudio(video, { muted: false, volume: 1 }).catch(() => {});
+    multiViewSlots.set(stream.id, slot);
+    */
+  });
+
+  for (const [streamId, controller] of multiViewControllers.entries()) {
+    if (!state.multiViewIds.includes(streamId)) {
+      destroyController(controller);
+      multiViewControllers.delete(streamId);
+      multiViewSlots.get(streamId)?.remove();
+      multiViewSlots.delete(streamId);
+    }
   }
+
+  updateMultiViewButtonState();
 }
 
 async function loadPage() {
@@ -810,20 +1329,29 @@ async function loadPage() {
     const { payload, proxies } = await loadLivePayload();
     state.streams = payload.streams ?? [];
     state.proxies = proxies;
-
+    const isMultiMode = query.get("mode") === "multi";
+    const requestedStreamId = query.get("id");
+    const requestedStream =
+      state.streams.find((stream) => stream.id === requestedStreamId) ?? null;
     const current =
-      state.streams.find((stream) => stream.id === state.currentStreamId) ?? state.streams[0] ?? null;
+      (isMultiMode
+        ? requestedStream
+        : requestedStream ??
+          state.streams.find((stream) => stream.id === state.currentStreamId) ??
+          state.streams[0]) ??
+      null;
 
-    setMainPlayer(current);
-    renderRail();
+    state.currentStreamId = current?.id ?? null;
 
-    if (query.get("mode") === "multi") {
+    if (isMultiMode) {
       elements.railTitle.textContent = "Tambah atau atur stream";
       elements.multiViewPicker.append(elements.streamRail);
-      state.multiViewIds = current ? [current.id] : [];
+      state.multiViewIds = requestedStream ? [requestedStream.id] : [];
       renderRail();
       renderMultiView();
     } else {
+      setMainPlayer(current).catch((error) => console.error(error));
+      renderRail();
       elements.railTitle.textContent = "Pilih live member";
       elements.railPanel.append(elements.streamRail);
       elements.multiViewPanel.hidden = true;
@@ -842,16 +1370,25 @@ elements.clearMultiview.addEventListener("click", () => {
     destroyController(controller);
   }
   multiViewControllers.clear();
+  multiViewSlots.clear();
   elements.multiviewGrid.innerHTML = "";
   state.multiViewIds = [];
   renderMultiView();
   renderRail();
+  updateMultiViewButtonState();
 });
 
 elements.rotateMainPlayer.addEventListener("click", () => {
+  if (isMainPlayerFullscreen()) {
+    pendingRotateAfterFullscreen = true;
+    document.exitFullscreen?.().catch(() => {
+      pendingRotateAfterFullscreen = false;
+    });
+    return;
+  }
+
   mainPlayerRotation = (mainPlayerRotation + 90) % 360;
-  elements.mainPlayerFrame.dataset.rotation = String(mainPlayerRotation);
-  applyRotation(elements.mainPlayerFrame, mainPlayerRotation);
+  syncMainPlayerRotation();
 });
 
 loadPage();

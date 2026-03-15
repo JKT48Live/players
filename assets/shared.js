@@ -528,16 +528,88 @@ export async function loadIdnChatRoomId(roomUrl) {
   return null;
 }
 
-export function createProxyLoader(proxyUrl) {
+export function getProxyChain(preferredProxy = null) {
+  const chain = preferredProxy ? [preferredProxy, ...CORS_PROXIES] : [...CORS_PROXIES];
+  return [...new Set(chain.filter(Boolean))];
+}
+
+export function createProxyLoader(proxyUrls) {
   const BaseLoader = window.Hls.DefaultConfig.loader;
+  const proxies = Array.isArray(proxyUrls) ? proxyUrls.filter(Boolean) : [proxyUrls].filter(Boolean);
 
   return class ProxyLoader extends BaseLoader {
+    constructor(config) {
+      super(config);
+      this.config = config;
+      this.activeLoader = null;
+      this.activeProxyIndex = 0;
+      this.context = null;
+      this.callbacks = null;
+      this.loaderConfig = null;
+      this.loaderCallbacks = null;
+    }
+
     load(context, config, callbacks) {
+      this.context = context;
+      this.loaderConfig = config;
+      this.callbacks = callbacks;
+      this.activeProxyIndex = 0;
+      this.loadWithProxy(this.activeProxyIndex);
+    }
+
+    loadWithProxy(proxyIndex) {
+      const proxyUrl = proxies[proxyIndex];
+      if (!proxyUrl) {
+        this.callbacks?.onError?.(
+          { code: 0, text: "All proxies failed" },
+          this.context,
+          null,
+          this.loaderCallbacks
+        );
+        return;
+      }
+
+      this.activeProxyIndex = proxyIndex;
+      this.activeLoader = new BaseLoader(this.config);
+
       const nextContext = {
-        ...context,
-        url: `${proxyUrl}${encodeURIComponent(context.url)}`
+        ...this.context,
+        url: `${proxyUrl}${encodeURIComponent(this.context.url)}`
       };
-      super.load(nextContext, config, callbacks);
+
+      const wrappedCallbacks = {
+        ...this.callbacks,
+        onError: (error, context, networkDetails, internalCallbacks) => {
+          if (proxyIndex < proxies.length - 1) {
+            this.activeLoader?.destroy?.();
+            this.loadWithProxy(proxyIndex + 1);
+            return;
+          }
+
+          this.callbacks?.onError?.(error, context, networkDetails, internalCallbacks);
+        },
+        onTimeout: (stats, context, networkDetails, internalCallbacks) => {
+          if (proxyIndex < proxies.length - 1) {
+            this.activeLoader?.destroy?.();
+            this.loadWithProxy(proxyIndex + 1);
+            return;
+          }
+
+          this.callbacks?.onTimeout?.(stats, context, networkDetails, internalCallbacks);
+        }
+      };
+
+      this.loaderCallbacks = wrappedCallbacks;
+      this.activeLoader.load(nextContext, this.loaderConfig, wrappedCallbacks);
+    }
+
+    abort() {
+      this.activeLoader?.abort?.();
+    }
+
+    destroy() {
+      this.activeLoader?.destroy?.();
+      this.activeLoader = null;
     }
   };
 }
