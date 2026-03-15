@@ -13,6 +13,7 @@
   --radius-lg: 28px;
   --radius-md: 20px;
   --radius-sm: 14px;
+  --watch-panel-height: 560px;
 }
 
 * {
@@ -315,7 +316,7 @@ body::before {
 }
 
 .player-panel {
-  min-height: 560px;
+  min-height: var(--watch-panel-height);
 }
 
 .player-tools {
@@ -356,10 +357,32 @@ body::before {
 .comments-feed {
   display: grid;
   gap: 12px;
-  max-height: 520px;
+  max-height: var(--comments-feed-max-height, 520px);
   overflow-y: auto;
   margin-top: 18px;
   padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 199, 217, 0.7) rgba(255, 255, 255, 0.06);
+  -webkit-overflow-scrolling: touch;
+}
+
+.comments-feed::-webkit-scrollbar {
+  width: 10px;
+}
+
+.comments-feed::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+}
+
+.comments-feed::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(124, 199, 217, 0.9), rgba(95, 140, 255, 0.82));
+  border-radius: 999px;
+  border: 2px solid rgba(40, 43, 48, 0.9);
+}
+
+.comments-feed::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(146, 214, 228, 1), rgba(117, 158, 255, 0.95));
 }
 
 .comments-empty {
@@ -920,6 +943,16 @@ body::before {
   .multiview-grid[data-count="3"],
   .multiview-grid[data-count="4"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .comments-panel {
+    height: auto;
+    display: block;
+  }
+
+  .comments-feed {
+    max-height: 520px;
+    min-height: unset;
   }
 
 }

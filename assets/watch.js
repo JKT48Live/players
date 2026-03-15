@@ -93,6 +93,16 @@ function stopVideoElement(video) {
   video.load();
 }
 
+function syncCommentsFeedHeight() {
+  const videoHeight = Math.round(elements.mainPlayerFrame?.getBoundingClientRect().height || 0);
+
+  if (videoHeight > 0) {
+    elements.commentsPanel?.style.setProperty("--comments-feed-max-height", `${videoHeight}px`);
+  } else {
+    elements.commentsPanel?.style.removeProperty("--comments-feed-max-height");
+  }
+}
+
 function applyRotation(container, rotation) {
   if (!container) {
     return;
@@ -542,12 +552,20 @@ function syncViewportToVideo(video, container) {
 
     container.style.setProperty("--media-ratio", `${video.videoWidth} / ${video.videoHeight}`);
     container.dataset.orientation = video.videoHeight > video.videoWidth ? "portrait" : "landscape";
+
+    if (container === elements.mainPlayerFrame) {
+      requestAnimationFrame(syncCommentsFeedHeight);
+    }
   };
 
   video.addEventListener("loadedmetadata", applyRatio);
   video.addEventListener("resize", applyRatio);
   window.addEventListener("resize", () => {
     applyRotation(container, Number(container?.dataset.rotation || 0));
+
+    if (container === elements.mainPlayerFrame) {
+      requestAnimationFrame(syncCommentsFeedHeight);
+    }
   });
   applyRatio();
   applyRotation(container, Number(container?.dataset.rotation || 0));
@@ -579,6 +597,7 @@ function setMainPlayer(stream) {
     elements.playerMeta.innerHTML = isMultiMode
       ? '<span class="meta-pill">Pantau beberapa stream sekaligus</span>'
       : "";
+    elements.commentsPanel.style.removeProperty("--comments-feed-max-height");
     updateCommentsForStream(null);
     return;
   }
@@ -612,6 +631,7 @@ function setMainPlayer(stream) {
   elements.mainPlayerFrame.dataset.rotation = "0";
   applyRotation(elements.mainPlayerFrame, 0);
   syncViewportToVideo(elements.mainPlayer, elements.mainPlayerFrame);
+  requestAnimationFrame(syncCommentsFeedHeight);
   playWithPreferredAudio(elements.mainPlayer, { muted: false, volume: 1 }).catch(() => {});
   updateCommentsForStream(stream);
 }
@@ -686,9 +706,11 @@ function refreshMultiViewItem(streamId) {
   }
 
   destroyController(controller);
+  controller.video.muted = false;
+  controller.video.volume = 1;
   const nextController = attachStream(controller.video, stream);
   multiViewControllers.set(streamId, nextController);
-  controller.video.play().catch(() => {});
+  playWithPreferredAudio(controller.video, { muted: false, volume: 1 }).catch(() => {});
 }
 
 function renderMultiView() {
@@ -703,6 +725,7 @@ function renderMultiView() {
     destroyController(mainPlayerController);
     mainPlayerController = null;
     stopVideoElement(elements.mainPlayer);
+    elements.commentsPanel.style.removeProperty("--comments-feed-max-height");
     disconnectComments();
   }
 
@@ -751,8 +774,8 @@ function renderMultiView() {
 
     const video = document.createElement("video");
     video.controls = true;
-    video.muted = true;
-    video.volume = 0;
+    video.muted = false;
+    video.volume = 1;
     video.playsInline = true;
     slot.append(video);
     syncViewportToVideo(video, slot);
@@ -777,7 +800,7 @@ function renderMultiView() {
 
     const controller = attachStream(video, stream);
     multiViewControllers.set(stream.id, controller);
-    playWithPreferredAudio(video, { muted: true, volume: 0 }).catch(() => {});
+    playWithPreferredAudio(video, { muted: false, volume: 1 }).catch(() => {});
   }
 }
 
