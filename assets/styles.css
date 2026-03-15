@@ -57,6 +57,19 @@ body::before {
   padding: 24px 0 40px;
 }
 
+.site-footer {
+  margin-top: 28px;
+  padding: 10px 6px 0;
+  text-align: center;
+}
+
+.site-footer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+}
+
 .hero,
 .panel {
   backdrop-filter: blur(18px);
