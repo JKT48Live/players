@@ -1080,6 +1080,10 @@ body::before {
     padding: 10px 12px 28px;
   }
 
+  .player-panel {
+    min-height: auto;
+  }
+
   .hero,
   .panel {
     border-radius: 24px;
@@ -1119,9 +1123,16 @@ body::before {
     max-height: 72vh;
   }
 
+  .video-frame,
+  .video-frame .video-stage,
+  .video-frame .video-stage media-player {
+    width: 100%;
+    max-width: 100%;
+  }
+
   .video-frame[data-orientation="portrait"] {
-    width: min(100%, 460px);
-    max-height: 78vh;
+    width: 100%;
+    max-height: min(78vh, calc(100vh - 220px));
     margin-left: auto;
     margin-right: auto;
   }
