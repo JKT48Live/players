@@ -1,6 +1,18 @@
 {
     "members": [
       {
+        "nama_lengkap": "JKT48 Official",
+        "nama_panggilan": "JKT48 Official",
+        "media_instagram": null,
+        "media_tiktok": null,
+        "media_twitter": null,
+        "media_showroom": "officialJKT48",
+        "media_showroom_id": 332503,
+        "tanggal_lahir": null,
+        "media_idn": "jkt48-official",
+        "media_idn_id": "50a27780-93e7-4e40-8474-60f6e0cca6da"
+      },
+      {
         "nama_lengkap": "Angelina Christy",
         "nama_panggilan": "Christy",
         "media_instagram": "jkt48.christy",
