@@ -659,6 +659,126 @@
         "media_showroom_id": 547073,
         "media_idn": "jkt48_intan",
         "media_idn_id": "cbc0bbe1-d6ea-4646-bfcf-24b3a642fa21"
-      }
+      },
+        {
+          "nama_lengkap": "Afera Thalia",
+          "nama_panggilan": "Fera",
+          "tanggal_lahir": "20/10/2012",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Fera",
+          "media_showroom_id": 572589,
+          "media_idn": "jkt48_fera",
+          "media_idn_id": "224d7e34-54ce-4aaa-a8e8-f9e197d7f774"
+        },
+        {
+          "nama_lengkap": "Carissa Dini",
+          "nama_panggilan": "Carissa",
+          "tanggal_lahir": "02/02/2012",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Carissa",
+          "media_showroom_id": 572572,
+          "media_idn": "jkt48_carissa",
+          "media_idn_id": "860ed330-d0bf-4af9-bc33-575e876abcc3"
+        },
+        {
+          "nama_lengkap": "Christabella Bonita",
+          "nama_panggilan": "Bella",
+          "tanggal_lahir": "02/03/2012",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Bella",
+          "media_showroom_id": 572573,
+          "media_idn": "jkt48_bella",
+          "media_idn_id": "79560bc6-813e-44d7-95b1-c9cf8e29f620"
+        },
+        {
+          "nama_lengkap": "Fahira Putri",
+          "nama_panggilan": "Fahira",
+          "tanggal_lahir": "13/09/2012",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Fahira",
+          "media_showroom_id": 572574,
+          "media_idn": "jkt48_fahira",
+          "media_idn_id": "1d21f357-686e-4a7a-aa32-6a32090d924e"
+        },
+        {
+          "nama_lengkap": "Fatimah Azzahra",
+          "nama_panggilan": "Rara",
+          "tanggal_lahir": "30/08/2010",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Rara",
+          "media_showroom_id": 572575,
+          "media_idn": "jkt48_rara",
+          "media_idn_id": "22ea8526-30a9-4f95-a750-b84673647054"
+        },
+        {
+          "nama_lengkap": "Heidi Suyangga",
+          "nama_panggilan": "Heidi",
+          "tanggal_lahir": "27/08/2008",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Heidi",
+          "media_showroom_id": 572591,
+          "media_idn": "jkt48_heidi",
+          "media_idn_id": "9bb79bed-688f-42bc-b971-c12668b7bb90"
+        },
+        {
+          "nama_lengkap": "Maxine Faye",
+          "nama_panggilan": "Maxine",
+          "tanggal_lahir": "02/12/2011",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Maxine",
+          "media_showroom_id": 572576,
+          "media_idn": "jkt48_maxine",
+          "media_idn_id": "fb24385e-4954-4ae9-b24e-de041cfca0c4"
+        },
+        {
+          "nama_lengkap": "Putry Jazyta",
+          "nama_panggilan": "Jazzy",
+          "tanggal_lahir": "12/03/2011",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Jazzy",
+          "media_showroom_id": 572577,
+          "media_idn": "jkt48_jazzy",
+          "media_idn_id": "52d343df-2b43-4848-9b23-70a081659109"
+        },
+        {
+          "nama_lengkap": "Ralyne Van Irwan",
+          "nama_panggilan": "Ralyne",
+          "tanggal_lahir": "15/10/2011",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Ralyne",
+          "media_showroom_id": 572587,
+          "media_idn": "jkt48_ralyne",
+          "media_idn_id": "ea45d282-0b03-4b7f-a4e9-cf649f27fcd0"
+        },
+        {
+          "nama_lengkap": "Sona Kalyana",
+          "nama_panggilan": "Sona",
+          "tanggal_lahir": "01/12/2011",
+          "media_instagram": null,
+          "media_tiktok": null,
+          "media_twitter": null,
+          "media_showroom": "JKT48_Sona",
+          "media_showroom_id": 572579,
+          "media_idn": "jkt48_sona",
+          "media_idn_id": "61d965a9-58cc-4d79-8104-0a326b91f731"
+        }
     ]
 }
