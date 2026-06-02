@@ -12,7 +12,9 @@ export const CORS_PROXIES = [
   "https://cors.azherebtsov.workers.dev/?",
   "https://corsp.suisuy.workers.dev/?",
   "https://proxy.jeffe.workers.dev/?",
-  "https://proxy.jeoungh-nah.workers.dev/"
+  "https://proxy.jeoungh-nah.workers.dev/",
+  //"https://api.crstlnz.my.id/api/stream?url=",
+  //"https://jkt48showroom-api.my.id/api/proxy?url="
 ];
 
 const SHOWROOM_URL = "https://www.showroom-live.com/api/live/onlives";
